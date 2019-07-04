@@ -1,0 +1,26 @@
+ 备注：目前dashboard插件如果想在界面上显示资源使用率，它还依赖heapster；因此需要安装heapster
+1、下载最新版的heapster
+https://github.com/kubernetes-retired/heapster/releases
+# wget https://github.com/kubernetes-retired/heapster/archive/v1.5.4.tar.gz
+# tar xf v1.5.4.tar.gz
+查看部署所用相关配置文件
+# cd heapster-1.5.4/deploy/kube-config/
+# ls influxdb/ && ls rbac/
+grafana.yaml  heapster.yaml  influxdb.yaml
+heapster-rbac.yaml
+
+用于存放 Heapster 部署所需的 yaml 文件
+# mkdir heapster
+# ls heapster/
+grafana.yaml  heapster-rbac.yaml  heapster.yaml  influxdb.yaml
+
+2.修改 yaml 中 image 的值（如果源就可以下载，以下操作步骤就可以忽略）
+# grep 'image:' heapster.yaml 
+        image: mirrorgooglecontainers/heapster-amd64:v1.5.3
+# grep 'image:' grafana.yaml 
+        image: mirrorgooglecontainers/heapster-grafana-amd64:v4.4.3
+# grep 'image:' influxdb.yaml 
+        image: mirrorgooglecontainers/heapster-influxdb-amd64:v1.3.3
+k8s.gcr.io 全部修改为mirrorgooglecontainers或者registry.cn-hangzhou.aliyuncs.com/google_containers
+
+3.修改 grafana.yaml 文件，暴露服务到外部
