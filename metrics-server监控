@@ -1,0 +1,11 @@
+metrics-server部署：
+     #git clone https://github.com/kubernetes-incubator/metrics-server
+#cd /root/metrics-server/deploy/1.8+/metrics-server-deployment.yaml
+#kubectl create  -f .
+# kubectl top pod --all-namespaces	###查看是否有数据
+#kubectl logs metrics-server-6ddf4c9458-4f4wf -n kube-system -c metrics-server --tail=20 -f     ##查看日志
+如果执行完成后报这个错：0/1 nodes are available: 1 node(s) had taints that the pod didn't tolerate.
+解决:#kubectl taint nodes --all node-role.kubernetes.io/master-
+访问方式：
+必须部署 metrics-server 才能使用该 API，metrics-server 通过调用 Kubelet Summary API 获取数据
+···········例如：http://192.168.40.146:8001/apis/metrics.k8s.io/v1beta1/nodes
