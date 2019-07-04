@@ -1,0 +1,43 @@
+有两种认证方式，一个token认证,另一个是Kubeconfig文件的认证
+# 创建 dashboard 所需要的资源
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/recommended/kubernetes-dashboard.yaml
+kubectl get pods -n kube-system
+kubectl get svc -n kube-system
+
+# 修改 svc 的的网络类型
+kubectl patch svc kubernetes-dashboard -p '{"spec":{"type":"NodePort"}}' -n kube-system
+kubectl get svc -n kube-system
+# 获取 NodePort 映射的外网端口，这里是 32240
+# 创建一个访问 default命令空间的 serviceaccount 账号
+cd /etc/kubernetes/pki
+kubectl create serviceaccount def-ns-admin -n default
+# 创建 rolebinding 把 def-ns-admin 与 admin 关联，命名空间是 default
+kubectl create rolebinding def-ns-admin --clusterrole=admin --serviceaccount=default:def-ns-admin
+# 如果需要所有命名空间的权限，可以使用 clusterrolebinding 与 cluster-admin 关联
+kubectl create clusterrolebinding def-ns-admin --clusterrole=cluster-admin --serviceaccount=default:def-ns-admin
+# 查看 def-ns-admin 的 token
+kubectl get secret
+kubectl describe secret def-ns-admin-token-8vzj5
+# 创建一个kubeconfig配置文件(基于token配置)
+kubectl config set-cluster kubernetes --certificate-authority=/etc/kubernetes/pki/ca.crt  --server="https://192.168.40.146:6443" --embed-certs=true --kubeconfig=/root/def-ns-admin.conf
+kubectl config view --kubeconfig=/root/def-ns-admin.conf 
+DEF_NS_ADMIN_TOKEN=$(kubectl get secret  def-ns-admin-token-8vzj5  -o jsonpath={.data.token} |base64 -d)
+kubectl config set-credentials def-ns-admin --token=$DEF_NS_ADMIN_TOKEN --kubeconfig=/root/def-ns-admin.conf
+kubectl config view --kubeconfig=/root/def-ns-admin.conf
+# 配置上下文
+kubectl config set-context def-ns-admin@kubernetes --cluster=kubernetes --user=def-ns-admin --kubeconfig=/root/def-ns-admin.conf 
+# 配置当前上下文
+kubectl config use-context def-ns-admin@kubernetes --kubeconfig=/root/def-ns-admin.conf
+kubectl config view --kubeconfig=/root/def-ns-admin.conf
+# 下载 def-ns-admin.conf
+# 使用 火狐浏览器 访问
+https://192.168.0.205:31328
+注意：通过以上安装因为证书问题只能通过火狐浏览器来访问，如果通过其它浏览器需要部署如下：
+#openssl genrsa -out dashboard.key 2048
+#openssl req -x509 -new -nodes -key dashboard.key -subj "/CN=192.168.40.146" -days 3650 -out dashboard.crt
+#kubectl delete -f kubernetes-dashboard.yaml
+
+重现生成secret：创建同名称的secret，名称为： kubernetes-dashboard-certs
+#kubectl -n kube-system create secret generic kubernetes-dashboard-certs --from-file=dashboard.key --from-file=dashboard.crt
+重新安装：
+#kubectl apply -f kubernetes-dashboard.yaml
