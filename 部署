@@ -1,0 +1,78 @@
+部署：
+一：安装docker
+前提: 在centos上内核版本4.x
+安装: yum update && yum install -y docker-ce
+需要下载docker-ce.repo  yum源
+修改cgroup: /etc/docker/daemon.json
+{  "exec-opts": ["native.cgroupdriver=cgroupfs"]}
+启动: systemctl enable docker && systemctl start docker
+调大fs.inotify ：echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
+开启启动加载内核模块
+echo '
+#! /bin/sh
+/sbin/modprobe ip_set
+/sbin/modprobe xt_set
+/sbin/modprobe ipt_set
+/sbin/modprobe ipt_rpfilter
+/sbin/modprobe ipt_REJECT
+/sbin/modprobe ipip
+/sbin/modprobe ip_tables
+/sbin/modprobe nf_conntrack_netlink
+/sbin/modprobe br_netfilter ' > /etc/sysconfig/modules/modprobe_kernel_mode_for_k8s.sh
+chmod +x /etc/sysconfig/modules/modprobe_kernel_mode_for_k8s.sh
+sh -x /etc/sysconfig/modules/modprobe_kernel_mode_for_k8s.sh
+3.0 kubeadm套装
+参考官方文档 create-cluster-kubeadm
+前提
+要求: 在centos上内核版本4.x，hostname不能以.com结尾
+关闭防火墙: setenforce 0
+关闭swap: swapoff -a & 永久禁用swap /etc/fstab
+开启ip forward:  echo 1 > /proc/sys/net/ipv4/ip_forward
+禁用ipv6: 
+新增文件 /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1net.bridge.bridge-nf-call-iptables = 1
+执行 sysctl --system
+安装kubeadm: 
+cat <<EOF > /etc/yum.repos.d/kubernetes.repo[kubernetes]name=Kubernetesbaseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64enabled=1gpgcheck=1repo_gpgcheck=1gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpgexclude=kube*EOF
+国内源：
+cat <<EOF > /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
+EOF
+
+配置host
+64.233.189.103 packages.cloud.google.com
+151.101.108.133 raw.githubusercontent.com
+74.125.204.82 k8s.gcr.io
+
+192.168.xx.xx pr-p35-72.hjidccom (本机host不能已.com结尾)
+yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetessystemctl enable kubelet && systemctl start kubelet
+ 
+执行初始化 
+ 
+kubeadm init --kubernetes-version=v1.15.0 --pod-network-cidr=10.244.0.0/16
+--feature-gates=CoreDNS=false
+初始化完成后保存最后两行 保存join token: 
+kubeadm join --token <token> <master-ip>:<master-port> --discovery-token-ca-cert-hash sha256:<hash>
+指定kube config 
+cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+另需要初始化kube config: 
+mkdir -p $HOME/.kubecp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+安装pod network: 
+公司网络目前仅支持 Calico 
+下载 rabc wget  https://docs.projectcalico.org/v3.1/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
+下载 calico wget https://docs.projectcalico.org/v3.1/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
+修改 calico.yaml 的网段为 value: 10.244.0.0/16。 key为（不需要修改） CALICO_IPV4POOL_CIDR 
+安装: kubectl apply -f rbac-kdd.yaml && kubectl apply -f calico.yaml 
+systemctl status kubelet
+systemctl restart kubelet
+重启kube dns pod: 只需要强制删除dns pod即可重启；备注dns是Pending因为需要部署calico网络服务
+kubectl delete pod --grace-period=0 --force --namespace=kube-system kube-dns-6f4fd4bdf-kn7rs
+开启master节点允许部署pod: kubectl taint nodes --all node-role.kubernetes.io/master-
+安装kube-dashboard: 
+另外一篇文档
