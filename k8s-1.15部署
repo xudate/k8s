@@ -50,7 +50,7 @@ EOF
 151.101.108.133 raw.githubusercontent.com
 74.125.204.82 k8s.gcr.io
 
-192.168.xx.xx pr-p35-72.hjidccom (本机host不能已.com结尾)
+192.168.xx.xx  (本机host不能已.com结尾)
 yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetessystemctl enable kubelet && systemctl start kubelet
  
 执行初始化 
