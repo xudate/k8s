@@ -19,7 +19,7 @@ kubectl create clusterrolebinding def-ns-admin --clusterrole=cluster-admin --ser
 kubectl get secret
 kubectl describe secret def-ns-admin-token-8vzj5
 # 创建一个kubeconfig配置文件(基于token配置)
-kubectl config set-cluster kubernetes --certificate-authority=/etc/kubernetes/pki/ca.crt  --server="https://192.168.40.146:6443" --embed-certs=true --kubeconfig=/root/def-ns-admin.conf
+kubectl config set-cluster kubernetes --certificate-authority=/etc/kubernetes/pki/ca.crt  --server="https://192.168.xx.xxx:6443" --embed-certs=true --kubeconfig=/root/def-ns-admin.conf
 kubectl config view --kubeconfig=/root/def-ns-admin.conf 
 DEF_NS_ADMIN_TOKEN=$(kubectl get secret  def-ns-admin-token-8vzj5  -o jsonpath={.data.token} |base64 -d)
 kubectl config set-credentials def-ns-admin --token=$DEF_NS_ADMIN_TOKEN --kubeconfig=/root/def-ns-admin.conf
@@ -34,7 +34,7 @@ kubectl config view --kubeconfig=/root/def-ns-admin.conf
 https://192.168.0.205:31328
 注意：通过以上安装因为证书问题只能通过火狐浏览器来访问，如果通过其它浏览器需要部署如下：
 #openssl genrsa -out dashboard.key 2048
-#openssl req -x509 -new -nodes -key dashboard.key -subj "/CN=192.168.40.146" -days 3650 -out dashboard.crt
+#openssl req -x509 -new -nodes -key dashboard.key -subj "/CN=192.168.xx.xxx" -days 3650 -out dashboard.crt
 #kubectl delete -f kubernetes-dashboard.yaml
 
 重现生成secret：创建同名称的secret，名称为： kubernetes-dashboard-certs
