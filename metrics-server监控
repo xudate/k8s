@@ -8,4 +8,4 @@ metrics-server部署：
 解决:#kubectl taint nodes --all node-role.kubernetes.io/master-
 访问方式：
 必须部署 metrics-server 才能使用该 API，metrics-server 通过调用 Kubelet Summary API 获取数据
-···········例如：http://192.168.40.146:8001/apis/metrics.k8s.io/v1beta1/nodes
+···········例如：http://192.168.xx.xxx:8001/apis/metrics.k8s.io/v1beta1/nodes
